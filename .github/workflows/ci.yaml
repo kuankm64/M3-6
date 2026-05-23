@@ -10,20 +10,14 @@ terraform-checks:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_wrapper: false # Bypasses wrapper abstractions to ensure strict local directory pathing
+        terraform_wrapper: false # Bypasses setup-terraform wrappers that can alter local caching paths
 
-    # FIX 1: Erase corrupt local platform locks pushed from Windows/WSL environments
-    - name: Clear Lock Cache
-      run: rm -f .terraform.lock.hcl
-
-    # FIX 2: Download plugins and write fresh platform architecture locks for the Ubuntu host
-    - name: Terraform Init & Lock Platform
+    # --------------------------------------------------------------------------
+    # FIX: Run an offline initialization to download provider plugins
+    # --------------------------------------------------------------------------
+    - name: Terraform Init (Validation Mode)
       id: init
-      run: |
-        terraform init -backend=false -upgrade
-        terraform providers lock -platform=linux_amd64
-
-    # FIX 3: Removed the 'terraform --version' step that was disrupting the local binary environment variables
+      run: terraform init -backend=false -upgrade
 
     - name: Terraform fmt
       id: fmt
