@@ -31,7 +31,10 @@ jobs:
     - name: Terraform Init (Validation Only)
       id: init
       run: terraform init -backend=false -upgrade
-    
+    - name: Check Terraform Version
+      id: terraform-version
+      run: terraform --version
+
     - name: Terraform fmt
       id: fmt
       run: terraform fmt -check
