@@ -6,7 +6,6 @@ on:
    branches:
      - main
 
-#  trigger on push to main as well, if you want to run checks on direct commits    
 jobs:
   Initial-Checks:
     runs-on: ubuntu-latest
@@ -21,10 +20,6 @@ jobs:
     outputs:
       status: ${{ job.status }}
     
-    # --------------------------------------------------------------------------
-    # FIX: Ensures EVERY step below runs in the exact folder where your .tf files live.
-    # Change "." to "./terraform" or your specific subfolder if applicable.
-    # --------------------------------------------------------------------------
     defaults:
       run:
         working-directory: .
@@ -33,15 +28,31 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    # Upgrade to v3 for Node20 runtime compatibility and speed improvements
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+      uses: hashicorp/setup-terraform@v3
       with:
-        terraform_wrapper: false # FIX: Disables the wrapper that breaks local plugin folder paths
+        terraform_wrapper: false 
+
+    # FIX: Creates a persistent cache for your provider binaries (aws 5.100.0, archive 2.8.0)
+    - name: Cache Terraform Providers
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.terraform.d/plugin-cache
+        key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+        restore-keys: |
+          ${{ runner.os }}-terraform-
+
+    # FIX: Registers the plugin cache directory globally in the runner environment
+    - name: Configure Terraform Plugin Cache
+      run: |
+        mkdir -p ~/.terraform.d/plugin-cache
+        echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraform.rc
 
     - name: Terraform Init (Validation Mode)
       id: init
-      # run: terraform init -backend=false -upgrade # FIX: Safely downloads aws 5.100.0 and archive 2.8.0 locally
-      run: terraform init
+      run: terraform init -upgrade
 
     - name: Terraform fmt
       id: fmt
@@ -64,9 +75,6 @@ jobs:
     - name: Run TFLint
       run: tflint -f compact
 
-  ########################################
-  # Add a job for snyk scan of your code #
-  ########################################
   snyk-checks:
     runs-on: ubuntu-latest
     needs: Initial-Checks
@@ -97,20 +105,26 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-    # 4. Build Docker Image
+    # 4. Build Docker Image (Will only run if a Dockerfile exists in root)
     - name: Build Docker Image
-      run: docker build -t "snyk-image" . # FIX: Resolves the build context path issue
+      run: |
+        if [ -f Dockerfile ]; then
+          docker build -t "snyk-image" .
+        else
+          echo "No Dockerfile found, skipping Docker build step."
+        fi
           
     # 5. Snyk Container Test (Scans image layers for OS level vulnerabilities)
     - name: Snyk Container Test
-      run: snyk container test "snyk-image"
+      run: |
+        if [ -f Dockerfile ]; then
+          snyk container test "snyk-image"
+        else
+          echo "No Dockerfile found, skipping Container scan."
+        fi
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  #################################################
-  # Finally, update summary for snyk-check        #
-  # Update needs statement to include snyk-checks #
-  #################################################
   summary:
     needs: [terraform-checks, snyk-checks]
     runs-on: ubuntu-latest
