@@ -25,6 +25,8 @@ jobs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_wrapper: false # <-- FIX: Disables wrapper breaking plugin caching paths
 
     - name: Terraform Init (Validation Only)
       id: init
@@ -65,8 +67,6 @@ jobs:
 
     - name: Setup Snyk CLI
       uses: snyk/actions/setup@master
-      # Note: This setup action hooks up the native binary environment wrapper 
-      # so you can invoke standard CLI binaries smoothly across subsequent steps.
 
     # 1. Snyk Code Test (Static Application Security Testing / SAST)
     - name: Snyk Code Test
@@ -85,12 +85,12 @@ jobs:
       run: snyk iac test
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-    - name: Build Docker Image
-      run: docker build -t "snyk-image"
 
+    # 4. Build Docker Image
+    - name: Build Docker Image
+      run: docker build -t "snyk-image" . # <-- FIX: Added missing dot "." to target workspace context
           
-    # 4. Snyk Container Test (Scans image layers for OS level vulnerabilities)
-    # Replace <image-name> (e.g., my-app:latest) with your actual target deployment tag
+    # 5. Snyk Container Test (Scans image layers for OS level vulnerabilities)
     - name: Snyk Container Test
       run: snyk container test "snyk-image"
       env:
@@ -101,9 +101,9 @@ jobs:
   # Update needs statement to include snyk-checks #
   #################################################
   summary:
-    needs: [terraform-checks, snyk-checks] # Included snyk-checks dependency track
+    needs: [terraform-checks, snyk-checks]
     runs-on: ubuntu-latest
-    if: always() # Forces summary to generate even if upstream validation checks fail
+    if: always()
     steps:
       - name: Adding markdown
         run: |
