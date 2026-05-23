@@ -10,7 +10,7 @@ terraform {
     # --------------------------------------------------------------------------
     archive = {
       source  = "hashicorp/archive"
-      version = "~> 2.0" # Or match the 2.8.0 version your environment targets
+      version = "~> 1.0" # Or match the 2.8.0 version your environment targets
     }
   }
 }
