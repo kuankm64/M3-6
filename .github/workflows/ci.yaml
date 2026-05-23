@@ -28,9 +28,9 @@ jobs:
       with:
         terraform_wrapper: false # <-- FIX: Disables wrapper breaking plugin caching paths
 
-    - name: Terraform Init (Validation Only)
+    - name: Terraform Init 
       id: init
-      run: terraform init -backend=false -upgrade
+      run: terraform init 
     - name: Check Terraform Version
       id: terraform-version
       run: terraform --version
