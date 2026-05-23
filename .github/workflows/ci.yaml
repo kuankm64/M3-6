@@ -6,6 +6,7 @@ on:
    branches:
      - main
 
+#  trigger on push to main as well, if you want to run checks on direct commits    
 jobs:
   Initial-Checks:
     runs-on: ubuntu-latest
