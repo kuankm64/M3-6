@@ -1,7 +1,7 @@
 
 terraform {
   required_version = "~>1.14.0"
-  
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -10,11 +10,11 @@ terraform {
     # --------------------------------------------------------------------------
     # FIX: Explicitly declare the archive provider so GitHub Actions caches it
     # --------------------------------------------------------------------------
-   # archive = {
-   #   source  = "hashicorp/archive"
+    # archive = {
+    #   source  = "hashicorp/archive"
     #  version = "~> 2.0" # Or match the 2.8.0 version your environment targets
-   # }
- # }
+    # }
+    # }
   }
 }
 
