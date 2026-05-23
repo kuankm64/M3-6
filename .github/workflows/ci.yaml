@@ -39,7 +39,8 @@ jobs:
 
     - name: Terraform Init (Validation Mode)
       id: init
-      run: terraform init -backend=false -upgrade # FIX: Safely downloads aws 5.100.0 and archive 2.8.0 locally
+      # run: terraform init -backend=false -upgrade # FIX: Safely downloads aws 5.100.0 and archive 2.8.0 locally
+      run: terraform init -upgrade
 
     - name: Terraform fmt
       id: fmt
