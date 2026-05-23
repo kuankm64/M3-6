@@ -1,6 +1,6 @@
 name: CI Checks
 run-name: Running Terraform Checks by ${{ github.actor }}
-
+# This workflow is triggered on pull requests to the main branch and performs the following checks: 
 on:
  pull_request:
    branches:
