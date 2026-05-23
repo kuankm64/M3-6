@@ -10,7 +10,7 @@ terraform-checks:
     # --------------------------------------------------------------------------
     defaults:
       run:
-        working-directory: ./terraform  
+        working-directory: ./M3-6
 
     steps:
     - name: Checkout
@@ -46,10 +46,10 @@ terraform-checks:
     - name: Run TFLint
       run: tflint -f compact
       
-  ########################################
-  # Add a job for snyk scan of your code #
-  ########################################
-  snyk-checks:
+    ########################################
+    # Add a job for snyk scan of your code #
+   ########################################
+snyk-checks:
     runs-on: ubuntu-latest
     needs: Initial-Checks
     outputs:
@@ -89,10 +89,10 @@ terraform-checks:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-  #################################################
-  # Finally, update summary for snyk-check        #
-  # Update needs statement to include snyk-checks #
-  #################################################
+    #################################################
+    # Finally, update summary for snyk-check        #
+    # Update needs statement to include snyk-checks #
+    #################################################
   summary:
     needs: [terraform-checks, snyk-checks]
     runs-on: ubuntu-latest
