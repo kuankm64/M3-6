@@ -5,13 +5,7 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    # --------------------------------------------------------------------------
-    # FIX: Explicitly declare the archive provider so GitHub Actions caches it
-    # --------------------------------------------------------------------------
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.4" # Or match the 2.8.0 version your environment targets
-    }
+   
   }
 }
 
