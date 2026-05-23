@@ -26,11 +26,11 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_wrapper: false # FIX: Prevents path wrapper glitch from breaking provider plugin discovery
+        terraform_wrapper: false # FIX: Disables glitchy wrapper breaking plugin caching paths
 
     - name: Terraform Init (Validation Mode)
       id: init
-      run: terraform init -backend=false -upgrade # FIX: Bypasses cloud state authentication so linting runs instantly
+      run: terraform init -backend=false -upgrade # FIX: Downloads plugins safely without needing cloud backend secrets
 
     - name: Check Terraform Version
       id: terraform-version
@@ -92,7 +92,7 @@ jobs:
 
     # 4. Build Docker Image
     - name: Build Docker Image
-      run: docker build -t "snyk-image" . # FIX: Targets local workspace context path correctly
+      run: docker build -t "snyk-image" . # FIX: Added dot to resolve workspace root context
           
     # 5. Snyk Container Test (Scans image layers for OS level vulnerabilities)
     - name: Snyk Container Test
@@ -107,12 +107,13 @@ jobs:
   summary:
     needs: [terraform-checks, snyk-checks]
     runs-on: ubuntu-latest
-    if: always() # Forces summary markdown table generation even if security scans uncover bugs
+    if: always() # Forces execution even if upstream validation checks fail
     steps:
       - name: Adding markdown
         run: |
-          TF_STATUS=${{ needs.terraform-checks.outputs.status }}
-          SNYK_STATUS=${{ needs.snyk-checks.outputs.status }}
+          # Use GitHub Actions environment variables to safely read step outcomes without breaking compilation maps
+          TF_STATUS="${{ needs.terraform-checks.result }}"
+          SNYK_STATUS="${{ needs.snyk-checks.result }}"
 
           echo '## 🚀 Preparing Build Summary 🚀' >> $GITHUB_STEP_SUMMARY
           echo '' >> $GITHUB_STEP_SUMMARY
@@ -124,3 +125,4 @@ jobs:
           echo '' >> $GITHUB_STEP_SUMMARY
 
           echo '## Job ran by: ${{ github.actor }}' >> $GITHUB_STEP_SUMMARY
+          
