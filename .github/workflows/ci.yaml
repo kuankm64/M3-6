@@ -3,6 +3,15 @@ terraform-checks:
     needs: Initial-Checks
     outputs:
       status: ${{ job.status }}
+
+    # --------------------------------------------------------------------------
+    # FIX: Change "./terraform" to match the exact name of your infra folder!
+    # If your files are in the main root directory, use "."
+    # --------------------------------------------------------------------------
+    defaults:
+      run:
+        working-directory: ./terraform  
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -10,11 +19,8 @@ terraform-checks:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_wrapper: false # Bypasses setup-terraform wrappers that can alter local caching paths
+        terraform_wrapper: false # Bypasses wrapper abstractions to ensure strict local directory pathing
 
-    # --------------------------------------------------------------------------
-    # FIX: Run an offline initialization to download provider plugins
-    # --------------------------------------------------------------------------
     - name: Terraform Init (Validation Mode)
       id: init
       run: terraform init -backend=false -upgrade
@@ -39,7 +45,7 @@ terraform-checks:
 
     - name: Run TFLint
       run: tflint -f compact
-
+      
   ########################################
   # Add a job for snyk scan of your code #
   ########################################
