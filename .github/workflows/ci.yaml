@@ -88,29 +88,28 @@ snyk-checks:
       run: snyk container test "snyk-image"
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-    #################################################
-    # Finally, update summary for snyk-check        #
-    # Update needs statement to include snyk-checks #
-    #################################################
+  #################################################
+  # Finally, update summary for snyk-check        #
+  # Update needs statement to include snyk-checks #
+  #################################################
   summary:
-    needs: [terraform-checks, snyk-checks]
-    runs-on: ubuntu-latest
-    if: always() # Forces execution even if upstream validation checks fail
-    steps:
-      - name: Adding markdown
-        run: |
-          # Use GitHub Actions environment variables to safely read step outcomes without breaking compilation maps
-          TF_STATUS="${{ needs.terraform-checks.result }}"
-          SNYK_STATUS="${{ needs.snyk-checks.result }}"
-
-          echo '## 🚀 Preparing Build Summary 🚀' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-
-          echo "| Job Name        | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| tf-check        | $TF_STATUS |" >> $GITHUB_STEP_SUMMARY
-          echo "| snyk-check      | $SNYK_STATUS |" >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-
-          echo '## Job ran by: ${{ github.actor }}' >> $GITHUB_STEP_SUMMARY
+      needs: [terraform-checks, snyk-checks]
+      runs-on: ubuntu-latest
+      if: always() # Forces execution even if upstream validation checks fail
+      steps:
+        - name: Adding markdown
+          run: |
+            # Use GitHub Actions environment variables to safely read step outcomes without breaking compilation maps
+            TF_STATUS="${{ needs.terraform-checks.result }}"
+            SNYK_STATUS="${{ needs.snyk-checks.result }}"
+  
+            echo '## 🚀 Preparing Build Summary 🚀' >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+  
+            echo "| Job Name        | Status |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "| tf-check        | $TF_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo "| snyk-check      | $SNYK_STATUS |" >> $GITHUB_STEP_SUMMARY
+            echo '' >> $GITHUB_STEP_SUMMARY
+  
+            echo '## Job ran by: ${{ github.actor }}' >> $GITHUB_STEP_SUMMARY
