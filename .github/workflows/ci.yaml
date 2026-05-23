@@ -1,16 +1,32 @@
-terraform-checks:
+name: CI Checks
+run-name: Running Terraform Checks by ${{ github.actor }}
+
+on:
+ pull_request:
+   branches:
+     - main
+
+jobs:
+  Initial-Checks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Getting initiator name
+      run: echo "Workflow initiated by ${{ github.actor }} from branch ${{ github.ref_name }}"
+
+  terraform-checks:
     runs-on: ubuntu-latest
     needs: Initial-Checks
     outputs:
       status: ${{ job.status }}
-
+    
     # --------------------------------------------------------------------------
-    # FIX: Change "./terraform" to match the exact name of your infra folder!
-    # If your files are in the main root directory, use "."
+    # FIX: Ensures EVERY step below runs in the exact folder where your .tf files live.
+    # Change "." to "./terraform" or your specific subfolder if applicable.
     # --------------------------------------------------------------------------
     defaults:
       run:
-        working-directory: ./M3-6
+        working-directory: .
 
     steps:
     - name: Checkout
@@ -19,11 +35,11 @@ terraform-checks:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
-        terraform_wrapper: false # Bypasses wrapper abstractions to ensure strict local directory pathing
+        terraform_wrapper: false # FIX: Disables the wrapper that breaks local plugin folder paths
 
     - name: Terraform Init (Validation Mode)
       id: init
-      run: terraform init -backend=false -upgrade
+      run: terraform init -backend=false -upgrade # FIX: Safely downloads aws 5.100.0 and archive 2.8.0 locally
 
     - name: Terraform fmt
       id: fmt
@@ -45,11 +61,11 @@ terraform-checks:
 
     - name: Run TFLint
       run: tflint -f compact
-      
-    ########################################
-    # Add a job for snyk scan of your code #
-   ########################################
-snyk-checks:
+
+  ########################################
+  # Add a job for snyk scan of your code #
+  ########################################
+  snyk-checks:
     runs-on: ubuntu-latest
     needs: Initial-Checks
     outputs:
@@ -81,35 +97,36 @@ snyk-checks:
 
     # 4. Build Docker Image
     - name: Build Docker Image
-      run: docker build -t "snyk-image" . # FIX: Added dot to resolve workspace root context
+      run: docker build -t "snyk-image" . # FIX: Resolves the build context path issue
           
     # 5. Snyk Container Test (Scans image layers for OS level vulnerabilities)
     - name: Snyk Container Test
       run: snyk container test "snyk-image"
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
   #################################################
   # Finally, update summary for snyk-check        #
   # Update needs statement to include snyk-checks #
   #################################################
   summary:
-      needs: [terraform-checks, snyk-checks]
-      runs-on: ubuntu-latest
-      if: always() # Forces execution even if upstream validation checks fail
-      steps:
-        - name: Adding markdown
-          run: |
-            # Use GitHub Actions environment variables to safely read step outcomes without breaking compilation maps
-            TF_STATUS="${{ needs.terraform-checks.result }}"
-            SNYK_STATUS="${{ needs.snyk-checks.result }}"
-  
-            echo '## 🚀 Preparing Build Summary 🚀' >> $GITHUB_STEP_SUMMARY
-            echo '' >> $GITHUB_STEP_SUMMARY
-  
-            echo "| Job Name        | Status |" >> $GITHUB_STEP_SUMMARY
-            echo "|-----------------|--------|" >> $GITHUB_STEP_SUMMARY
-            echo "| tf-check        | $TF_STATUS |" >> $GITHUB_STEP_SUMMARY
-            echo "| snyk-check      | $SNYK_STATUS |" >> $GITHUB_STEP_SUMMARY
-            echo '' >> $GITHUB_STEP_SUMMARY
-  
-            echo '## Job ran by: ${{ github.actor }}' >> $GITHUB_STEP_SUMMARY
+    needs: [terraform-checks, snyk-checks]
+    runs-on: ubuntu-latest
+    if: always() # Forces execution even if compilation maps or upstream checks fail
+    steps:
+      - name: Adding markdown
+        run: |
+          # Safe environment mapping from the GitHub engine framework
+          TF_STATUS="${{ needs.terraform-checks.result }}"
+          SNYK_STATUS="${{ needs.snyk-checks.result }}"
+
+          echo '## 🚀 Preparing Build Summary 🚀' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          echo "| Job Name        | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| tf-check        | $TF_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| snyk-check      | $SNYK_STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+
+          echo '## Job ran by: ${{ github.actor }}' >> $GITHUB_STEP_SUMMARY
