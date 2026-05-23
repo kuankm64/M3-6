@@ -1,10 +1,10 @@
 name: CI Checks
 run-name: Running Terraform Checks by ${{ github.actor }}
-# This workflow is triggered on pull requests to the main branch and performs the following checks: 
+
 on:
- pull_request:
-   branches:
-     - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   Initial-Checks:
@@ -28,31 +28,18 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    # Upgrade to v3 for Node20 runtime compatibility and speed improvements
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
+        terraform_version: "1.14.6"
         terraform_wrapper: false 
 
-    # FIX: Creates a persistent cache for your provider binaries (aws 5.100.0, archive 2.8.0)
-    - name: Cache Terraform Providers
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.terraform.d/plugin-cache
-        key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
-        restore-keys: |
-          ${{ runner.os }}-terraform-
-
-    # FIX: Registers the plugin cache directory globally in the runner environment
-    - name: Configure Terraform Plugin Cache
-      run: |
-        mkdir -p ~/.terraform.d/plugin-cache
-        echo 'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"' > ~/.terraform.rc
-
+    # FIX: Purges any broken local cache/lockfile and forces a clean Linux binary download
     - name: Terraform Init (Validation Mode)
       id: init
-      run: terraform init -upgrade
+      run: |
+        rm -rf .terraform .terraform.lock.hcl
+        terraform init -upgrade -no-color
 
     - name: Terraform fmt
       id: fmt
@@ -105,7 +92,7 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-    # 4. Build Docker Image (Will only run if a Dockerfile exists in root)
+    # 4. Build Docker Image (Safely skips if no Dockerfile is found in root)
     - name: Build Docker Image
       run: |
         if [ -f Dockerfile ]; then
@@ -132,7 +119,6 @@ jobs:
     steps:
       - name: Adding markdown
         run: |
-          # Safe environment mapping from the GitHub engine framework
           TF_STATUS="${{ needs.terraform-checks.result }}"
           SNYK_STATUS="${{ needs.snyk-checks.result }}"
 
